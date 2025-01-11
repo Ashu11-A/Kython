@@ -1,9 +1,12 @@
-import { EventEmitter } from 'events'
-import { type DriverOptions, type Protocol } from '../types/driver'
+import { type DriverEvents, type DriverOptions, type Protocol } from '../types/driver'
 import type { Runtime } from '../types/global'
+import { TypedEventEmitter } from './EventEmitter'
 
-export class Driver<Prototype extends Protocol, RunTyped extends Runtime> extends EventEmitter {
-  static drivers = new Map<Protocol, Driver<Protocol, Runtime>>()
+export class Driver<
+  RunTyped extends Runtime,
+  Prototype extends Protocol,
+  > extends TypedEventEmitter<DriverEvents<Prototype>> {
+  static drivers = new Map<Protocol, Driver<Runtime, Protocol>>()
 
   public readonly name: string
   public readonly protocol: Prototype
@@ -30,6 +33,6 @@ export class Driver<Prototype extends Protocol, RunTyped extends Runtime> extend
   }
 
   static getDriver<Prototype extends Protocol>(driver: Prototype) {
-    return Driver.drivers.get(driver) as Driver<Prototype, Runtime>
+    return Driver.drivers.get(driver) as Driver<Runtime, Prototype>
   }
 }

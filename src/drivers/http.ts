@@ -1,9 +1,9 @@
 import { createServer } from 'http'
 import { Driver } from '../controllers/Drivers'
+import { KythonResponse } from '../controllers/Response'
+import { CustomRequest } from '../handlers/Request'
 import { Protocol } from '../types/driver'
 import { Runtime } from '../types/global.d'
-import { KythonRequest } from '../controllers/Request'
-import { KythonResponse } from '../controllers/Response'
 
 export default new Driver({
   name: 'http',
@@ -11,14 +11,14 @@ export default new Driver({
   listen({ port, hostname }, onRequest) {
     switch (runtime) {
     case Runtime.Bun: {
-      return Bun.serve({ port, hostname, reusePort: true, fetch: async (request) => onRequest(new KythonRequest(request)) })
+      return Bun.serve({ port, hostname, reusePort: true, fetch: async (request) => onRequest(request) })
     }
     case Runtime.Deno: {
-      return Deno.serve({ port, hostname }, async (request) => onRequest(new KythonRequest(request)))
+      return Deno.serve({ port, hostname }, async (request) => onRequest(request))
     }
     case Runtime.Node: {
       return createServer(
-        (request) => onRequest(new KythonRequest(request), new KythonResponse())
+        (request, response) => onRequest(new CustomRequest(request), new KythonResponse(response, request))
       ).listen(port)
     }
     }

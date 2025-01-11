@@ -1,17 +1,23 @@
 import type { Server as BunServer } from 'bun'
 import type { Server as HttpServer } from 'http'
-import type { Server as NetServer } from 'net'
-import type { Server as TlsServer } from 'tls'
 import type { Driver } from '../controllers/Drivers'
-import type { Runtime } from './global'
-import type { KythonRequest } from '../controllers/Request'
+import type { Kython } from '../controllers/Kython'
 import type { KythonResponse } from '../controllers/Response'
+import type { CustomRequest } from '../handlers/Request'
+import type { WebSocketClient } from '../handlers/WebSocketClient'
+import type { WebSocketServer } from '../handlers/WebSocketServer'
+import type { Runtime } from './global'
 
 export enum Protocol {
-    HTTP = 'http',
-    NET = 'net',
-    TLS = 'tls'
+    HTTP = 1,
+    NET = 2
 }
+
+export type DriverEvents<Prototype extends Protocol>= {
+    ready: [Driver<typeof globalThis.runtime, Prototype>]
+}
+
+export type CombinedRequest = CustomRequest | Request;
 
 export type DriverOptions<Prototype extends Protocol, RunTyped extends Runtime> = {
     name: string
@@ -20,7 +26,10 @@ export type DriverOptions<Prototype extends Protocol, RunTyped extends Runtime> 
       port,
       hostname
     }: {port: number, hostname?: string},
-    onRequest: (request: KythonRequest, response?: KythonResponse) => Promise<Response> | Response
+    onRequest: Prototype extends Protocol.NET
+    ? (client: WebSocketClient, server: WebSocketServer) => void
+    : (request: CombinedRequest, response?: KythonResponse) => Promise<Response> | Response,
+    kython: Kython<Runtime>
     ) => Prototype extends Protocol.HTTP
     ? (
         RunTyped extends Runtime.Bun
@@ -29,18 +38,7 @@ export type DriverOptions<Prototype extends Protocol, RunTyped extends Runtime> 
         ? Deno.HttpServer<Deno.NetAddr>
         : HttpServer
     )
-    : Prototype extends Protocol.TLS
-    ? TlsServer
     : Prototype extends Protocol.NET
-    ? NetServer
+    ? WebSocketServer
     : never
-}
-
-export interface DriverEvents<Prototype extends Protocol>{
-    ready: (driver: Driver<Prototype, typeof globalThis.runtime>) => void
-}
-
-export declare interface Drive<Prototype extends Protocol> {
-    on<U extends keyof DriverEvents<Prototype>>(event: U, listener: DriverEvents<Prototype>[U]): this
-    emit<U extends keyof DriverEvents<Prototype>>(event: U, listener: DriverEvents<Prototype>[U]): boolean
 }

@@ -1,18 +1,28 @@
-import type { KythonRequest } from '../controllers/Request'
+import type { Driver } from '../controllers/Drivers'
 import type { KythonResponse } from '../controllers/Response'
-import type { Drive, Protocol } from './driver'
+import type { WebSocketClient } from '../handlers/WebSocketClient'
+import type { WebSocketServer } from '../handlers/WebSocketServer'
+import type { CombinedRequest, Protocol } from './driver'
+import type { Runtime } from './global'
 
-export type KythonHandler = (
-  request: KythonRequest,
-  response: Omit<KythonResponse, 'response'>
-) => Promise<void> | void
 
-export type KythonMethod = (
+export type KythonHandler<Prototype extends Protocol> = 
+Prototype extends Protocol.HTTP
+  ? (
+      request: CombinedRequest,
+      response: KythonResponse
+    ) => Promise<void> | void
+  : (
+    client: WebSocketClient,
+    server: WebSocketServer
+  ) => void
+
+export type KythonMethod<Prototype extends Protocol>= (
   path: string,
-  func: KythonHandler
+  func: KythonHandler<Prototype>
 ) => void
 
-export type KythonParams<Prototype extends Protocol> = {
+export type KythonParams<RunTyped extends Runtime, Prototypes extends Protocol[]> = {
 
   /**
    * Whether to enable a multithreaded system using Workers.
@@ -33,9 +43,9 @@ export type KythonParams<Prototype extends Protocol> = {
    * The communication protocol to use. Accepted values include HTTP, NET, and TLS.
    *
    * @type {Prototype | undefined}
-   * @default Protocol.HTTP
+   * @default [Protocol.HTTP]
    */
-  protocol?: Prototype
+  protocols?: Prototypes
 
   /**
    * The communication driver. Typically, you don't need to modify this directly
@@ -43,5 +53,5 @@ export type KythonParams<Prototype extends Protocol> = {
    *
    * @type {Drive<Prototype> | undefined}
    */
-  driver?: Drive<Prototype>
+  driver?: Driver<RunTyped, Prototypes[number]>
 }
